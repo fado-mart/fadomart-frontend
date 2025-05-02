@@ -132,7 +132,7 @@ const Reports = () => {
           </TableHead>
           <TableBody>
             <TableRow>
-              <TableCell>${reports.sales.totalSales.toFixed(2)}</TableCell>
+              <TableCell>GH₵{reports.sales.totalSales.toFixed(2)}</TableCell>
               <TableCell>{reports.sales.totalOrders}</TableCell>
             </TableRow>
           </TableBody>
@@ -203,7 +203,7 @@ const Reports = () => {
                 <TableRow key={index}>
                   <TableCell>{user.userName}</TableCell>
                   <TableCell>{user.totalOrders}</TableCell>
-                  <TableCell>${user.totalSpent.toFixed(2)}</TableCell>
+                  <TableCell>GH₵{user.totalSpent.toFixed(2)}</TableCell>
                 </TableRow>
               ))
             ) : (
@@ -241,7 +241,7 @@ const Reports = () => {
                 <TableRow key={index}>
                   <TableCell>{product.productName}</TableCell>
                   <TableCell>{product.totalQuantitySold}</TableCell>
-                  <TableCell>${product.totalSales.toFixed(2)}</TableCell>
+                  <TableCell>GH₵{product.totalSales.toFixed(2)}</TableCell>
                 </TableRow>
               ))
             ) : (

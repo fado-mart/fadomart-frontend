@@ -187,8 +187,8 @@ const Home = () => {
                     {product.description}
                   </Typography>
                   <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="h6" color="primary">
-                      ${product.price}
+                    <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+                      GH₵{product.price.toFixed(2)}
                     </Typography>
                     <Chip
                       label={product.category?.name || 'Uncategorized'}

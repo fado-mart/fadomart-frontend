@@ -17,6 +17,7 @@ import {
   InputLabel,
   Snackbar,
   Alert,
+  TableCell,
 } from '@mui/material'
 import { Search as SearchIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
@@ -164,8 +165,14 @@ const Products = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ mb: 4, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+    <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 2, sm: 4 } }}>
+      <Box sx={{ 
+        mb: 4, 
+        display: 'flex', 
+        gap: 2, 
+        flexWrap: 'wrap',
+        flexDirection: { xs: 'column', sm: 'row' }
+      }}>
         <TextField
           fullWidth
           variant="outlined"
@@ -179,10 +186,16 @@ const Products = () => {
               </InputAdornment>
             ),
           }}
-          sx={{ flex: 1, minWidth: 200 }}
+          sx={{ 
+            flex: 1, 
+            minWidth: { xs: '100%', sm: 200 } 
+          }}
         />
         
-        <FormControl sx={{ minWidth: 200 }}>
+        <FormControl sx={{ 
+          minWidth: { xs: '100%', sm: 200 },
+          width: { xs: '100%', sm: 'auto' }
+        }}>
           <InputLabel>Category</InputLabel>
           <Select
             value={selectedCategory}
@@ -200,13 +213,13 @@ const Products = () => {
       </Box>
 
       {filteredProducts.length === 0 ? (
-        <Typography variant="h6" align="center">
+        <Typography variant="h6" align="center" sx={{ py: 4 }}>
           No products found matching your criteria
         </Typography>
       ) : (
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 2, sm: 3 }}>
           {filteredProducts.map((product) => (
-            <Grid item key={product._id} xs={12} sm={6} md={4}>
+            <Grid item key={product._id} xs={12} sm={6} md={4} lg={3}>
               <Card sx={{ 
                 height: '100%', 
                 display: 'flex', 
@@ -224,17 +237,24 @@ const Products = () => {
                   alt={product.productName}
                   sx={{ 
                     objectFit: 'cover',
-                    borderBottom: '1px solid rgba(0,0,0,0.1)'
+                    borderBottom: '1px solid rgba(0,0,0,0.1)',
+                    height: { xs: 180, sm: 200 }
                   }}
                 />
-                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ 
+                  flexGrow: 1, 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  p: { xs: 2, sm: 3 }
+                }}>
                   <Typography gutterBottom variant="h6" component="div" sx={{ 
                     fontWeight: 'bold',
                     minHeight: '3em',
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
                   }}>
                     {product.productName}
                   </Typography>
@@ -257,7 +277,7 @@ const Products = () => {
                     gap: 1
                   }}>
                     <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
-                      ${product.price.toFixed(2)}
+                      GH₵{product.price.toFixed(2)}
                     </Typography>
                     <Chip
                       label={product.quantity > 0 ? 'In Stock' : 'Out of Stock'}

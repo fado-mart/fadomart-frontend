@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { getProducts, getCategories } from '../services/api'
 import { Container, Row, Col, Card, Button } from 'react-bootstrap'
 import { FaShoppingCart, FaArrowRight } from 'react-icons/fa'
+import { Typography } from '@mui/material'
 
 const HomePage = () => {
   const [products, setProducts] = useState([])
@@ -106,9 +107,9 @@ const HomePage = () => {
                   />
                   <Card.Body>
                     <Card.Title>{product.name}</Card.Title>
-                    <Card.Text className="text-muted">
-                      ${product.price.toFixed(2)}
-                    </Card.Text>
+                    <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+                      GH₵{product.price.toFixed(2)}
+                    </Typography>
                     <Button
                       variant="primary"
                       as={Link}

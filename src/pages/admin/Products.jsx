@@ -38,11 +38,13 @@ import { getProducts, createProduct, updateProduct, deleteProduct, getCategories
 
 const Products = () => {
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [formData, setFormData] = useState({
     productName: '',
     description: '',
@@ -57,6 +59,19 @@ const Products = () => {
     fetchProducts();
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (selectedCategory === 'all') {
+      setFilteredProducts(products);
+    } else {
+      const filtered = products.filter(product => {
+        // Handle both nested category object and direct category ID
+        const productCategoryId = product.category?._id || product.category;
+        return productCategoryId === selectedCategory;
+      });
+      setFilteredProducts(filtered);
+    }
+  }, [selectedCategory, products]);
 
   const fetchCategories = async () => {
     try {
@@ -309,6 +324,10 @@ const Products = () => {
     }));
   };
 
+  const handleCategoryFilterChange = (e) => {
+    setSelectedCategory(e.target.value);
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
@@ -327,15 +346,35 @@ const Products = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Products Management</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Product
-        </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1">
+          Products
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel>Filter by Category</InputLabel>
+            <Select
+              value={selectedCategory}
+              onChange={handleCategoryFilterChange}
+              label="Filter by Category"
+            >
+              <MenuItem value="all">All Categories</MenuItem>
+              {categories.map((category) => (
+                <MenuItem key={category._id} value={category._id}>
+                  {category.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Add Product
+          </Button>
+        </Box>
       </Box>
 
       <TableContainer component={Paper}>
@@ -347,40 +386,41 @@ const Products = () => {
               <TableCell>Category</TableCell>
               <TableCell>Price</TableCell>
               <TableCell>Quantity</TableCell>
-              <TableCell>Stock Status</TableCell>
+              <TableCell>Status</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {products.map((product) => (
-              <TableRow key={product._id || product.id}>
+            {filteredProducts.map((product) => (
+              <TableRow key={product._id}>
                 <TableCell>
-                  <img
-                    src={product.image}
-                    alt={product.productName || product.name}
-                    style={{ width: 50, height: 50, objectFit: 'cover' }}
-                  />
+                  {product.image ? (
+                    <img
+                      src={product.image}
+                      alt={product.productName || product.name}
+                      style={{ width: 50, height: 50, objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <ImageIcon />
+                  )}
                 </TableCell>
                 <TableCell>{product.productName || product.name}</TableCell>
                 <TableCell>
-                  {typeof product.category === 'object' 
-                    ? product.category.name || product.category._id 
-                    : product.category}
+                  {product.category?.name || categories.find(c => c._id === product.category)?.name || 'Uncategorized'}
                 </TableCell>
-                <TableCell>${product.price}</TableCell>
+                <TableCell>GH₵{product.price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                 <TableCell>{product.quantity}</TableCell>
                 <TableCell>
-                  <Chip 
-                    label={product.stockStatus || 'In Stock'} 
-                    color={product.stockStatus === 'In Stock' ? 'success' : 'error'} 
-                    size="small" 
+                  <Chip
+                    label={product.stockStatus}
+                    color={product.stockStatus === 'In Stock' ? 'success' : 'error'}
                   />
                 </TableCell>
                 <TableCell>
                   <IconButton onClick={() => handleOpenDialog(product)}>
                     <EditIcon />
                   </IconButton>
-                  <IconButton onClick={() => handleDelete(product._id || product.id)}>
+                  <IconButton onClick={() => handleDelete(product._id)}>
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>

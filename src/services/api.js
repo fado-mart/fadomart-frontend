@@ -1,10 +1,7 @@
 import axios from 'axios'
 
-const API_URL = 'https://fadomart-api.onrender.com'
-
-// Create axios instance with default config
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'https://fadomart-api.onrender.com',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

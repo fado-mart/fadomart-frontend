@@ -11,14 +11,10 @@ import {
   List,
   ListItem,
   ListItemText,
-  Button,
   IconButton,
   Skeleton,
   Card,
   CardContent,
-  CardActions,
-  TextField,
-  MenuItem,
 } from '@mui/material';
 import {
   Inventory as InventoryIcon,
@@ -26,8 +22,6 @@ import {
   ShoppingCart as OrderIcon,
   AttachMoney as RevenueIcon,
   Refresh as RefreshIcon,
-  Warning as WarningIcon,
-  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -80,13 +74,11 @@ const Overview = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [dateRange, setDateRange] = useState('all');
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalUsers: 0,
     totalOrders: 0,
     totalRevenue: 0,
-    lowStockItems: [],
     recentUsers: [],
     revenueData: [],
   });
@@ -146,7 +138,6 @@ const Overview = () => {
         totalUsers: Array.isArray(usersRes.data) ? usersRes.data.length : 0,
         totalOrders: ordersArray.length,
         totalRevenue,
-        lowStockItems: Array.isArray(productsRes.data) ? productsRes.data.filter(item => item.quantity < item.lowStockThreshold) : [],
         recentUsers: Array.isArray(usersRes.data) ? usersRes.data.slice(0, 5) : [],
         revenueData,
       });
@@ -161,7 +152,7 @@ const Overview = () => {
 
   useEffect(() => {
     fetchData();
-  }, [dateRange]);
+  }, []);
 
   const handleStatClick = (type) => {
     switch (type) {
@@ -214,24 +205,9 @@ const Overview = () => {
         }}>
           Dashboard Overview
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <TextField
-            select
-            label="Date Range"
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            size="small"
-            sx={{ minWidth: 120 }}
-          >
-            <MenuItem value="all">All Time</MenuItem>
-            <MenuItem value="week">Last Week</MenuItem>
-            <MenuItem value="month">Last Month</MenuItem>
-            <MenuItem value="year">Last Year</MenuItem>
-          </TextField>
-          <IconButton onClick={fetchData} color="primary">
-            <RefreshIcon />
-          </IconButton>
-        </Box>
+        <IconButton onClick={fetchData} color="primary">
+          <RefreshIcon />
+        </IconButton>
       </Box>
 
       {lastUpdated && (
@@ -280,9 +256,9 @@ const Overview = () => {
       </Grid>
 
       {/* Revenue Chart */}
-      <Card sx={{ mb: 4 }}>
+      <Card sx={{ mb: 4, boxShadow: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" gutterBottom sx={{ color: theme.palette.primary.main }}>
             Revenue Trend
           </Typography>
           <Box sx={{ height: 300 }}>
@@ -292,60 +268,24 @@ const Overview = () => {
                 <XAxis dataKey="date" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="revenue" stroke={theme.palette.primary.main} />
+                <Line 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke={theme.palette.primary.main}
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </Box>
         </CardContent>
       </Card>
 
-      {/* Low Stock Items */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Low Stock Items
-          </Typography>
-          <List>
-            {stats.lowStockItems.length > 0 ? (
-              stats.lowStockItems.map((item) => (
-                <ListItem 
-                  key={item._id} 
-                  component="div"
-                  secondaryAction={
-                    <Button 
-                      variant="contained" 
-                      color="warning"
-                      size="small"
-                      onClick={() => navigate(`/admin/products/${item._id}`)}
-                    >
-                      Update Stock
-                    </Button>
-                  }
-                >
-                  <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <WarningIcon color="warning" sx={{ mr: 1 }} />
-                        {item.name}
-                      </Box>
-                    }
-                    secondary={`Stock: ${item.quantity} (Threshold: ${item.lowStockThreshold})`}
-                  />
-                </ListItem>
-              ))
-            ) : (
-              <ListItem component="div">
-                <ListItemText primary="No low stock items" />
-              </ListItem>
-            )}
-          </List>
-        </CardContent>
-      </Card>
-
       {/* Recent Users */}
-      <Card>
+      <Card sx={{ boxShadow: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" gutterBottom sx={{ color: theme.palette.primary.main }}>
             Recent Users
           </Typography>
           <List>
@@ -353,15 +293,11 @@ const Overview = () => {
               <ListItem 
                 key={user._id} 
                 component="div"
-                secondaryAction={
-                  <Button 
-                    variant="outlined" 
-                    size="small"
-                    onClick={() => navigate(`/admin/users/${user._id}`)}
-                  >
-                    View
-                  </Button>
-                }
+                sx={{
+                  '&:hover': {
+                    backgroundColor: theme.palette.action.hover,
+                  }
+                }}
               >
                 <ListItemText
                   primary={user.userName}
