@@ -89,12 +89,28 @@ const Profile = () => {
 
       setLoading(true)
       try {
+        // Ensure token is set before making the request
+        const token = localStorage.getItem('token')
+        if (!token) {
+          console.error('No token found, redirecting to login')
+          navigate('/login')
+          return
+        }
+
         const response = await getUserProfile()
         console.log('Profile data:', response.data)
         
         // Handle different response structures
         const data = response.data?.user || response.data || {}
-        setProfileData(data)
+        
+        // Ensure role is properly set
+        const role = data.role || 'User'
+        
+        // Update profile data with proper role
+        setProfileData({
+          ...data,
+          role
+        })
         
         // Initialize form data
         setFormData({
@@ -105,7 +121,12 @@ const Profile = () => {
         })
       } catch (error) {
         console.error('Error fetching profile:', error)
-        setError('Failed to load profile data')
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          // Authentication error, redirect to login
+          navigate('/login')
+        } else {
+          setError('Failed to load profile data')
+        }
       } finally {
         setLoading(false)
       }
@@ -340,6 +361,15 @@ const Profile = () => {
             <Typography variant="body2" sx={{ mt: 1 }}>
               Member since: {formatDate(profileData?.createdAt || new Date())}
             </Typography>
+            {profileData?.role && (
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                Role: <Chip 
+                  label={profileData.role || 'User'} 
+                  color={profileData.role === 'Admin' ? 'primary' : 'default'}
+                  size="small"
+                />
+              </Typography>
+            )}
           </Box>
         </Box>
         

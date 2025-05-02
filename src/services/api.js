@@ -8,9 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-  },
-  // Enable credentials to send cookies across domains if needed
-  withCredentials: false,
+  }
 })
 
 // Initialize token from localStorage
@@ -29,8 +27,9 @@ api.interceptors.response.use(
       method: error.config?.method,
       status: error.response?.status,
       statusText: error.response?.statusText,
-      message: error.message,
-      data: error.response?.data
+      message: error.response?.data?.message || error.message,
+      data: error.response?.data,
+      headers: error.config?.headers
     })
     
     // Check for specific error types
@@ -38,15 +37,24 @@ api.interceptors.response.use(
       // The request was made and the server responded with a status code
       // outside of the range of 2xx
       if (error.response.status === 401) {
+        // Token is invalid or expired
         console.warn('Authentication error detected. Token may be invalid or expired.')
-      } else if (error.response.status === 422) {
-        console.warn('Validation error:', error.response.data)
+        // Clear the token and redirect to login
+        localStorage.removeItem('token')
+        window.location.href = '/login'
       } else if (error.response.status === 403) {
         console.warn('Permission denied. User lacks necessary permissions.')
+        // Show a user-friendly error message
+        error.message = 'You do not have permission to perform this action.'
+      } else if (error.response.status === 422) {
+        console.warn('Validation error:', error.response.data)
       }
     } else if (error.request) {
       // The request was made but no response was received
       console.error('No response received from server:', error.request)
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('Error setting up request:', error.message)
     }
     
     return Promise.reject(error)
@@ -65,7 +73,7 @@ const logAuthStatus = (message) => {
 // Ensure token is consistently set in headers
 const ensureToken = () => {
   const token = localStorage.getItem('token')
-  if (token && !api.defaults.headers.common['Authorization']) {
+  if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`
     return true
   }
@@ -91,13 +99,15 @@ export const setToken = (token) => {
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
-    const updated = ensureToken()
-    if (updated) {
-      console.log('Interceptor restored missing Authorization header for:', config.url)
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error)
+  }
 )
 
 // Cart endpoints
@@ -361,7 +371,11 @@ export const testConnection = async () => {
 }
 
 // User endpoints
-export const getUserProfile = () => api.get('/users/me')
+export const getUserProfile = () => {
+  ensureToken()
+  return api.get('/users/me')
+}
+
 export const updateUserProfile = (userData) => {
   const formData = new FormData()
   
@@ -396,6 +410,31 @@ export const updateUserProfile = (userData) => {
   })
 }
 
+// Admin user management endpoints
+export const getAllUsers = () => {
+  ensureToken()
+  return api.get('/users')
+}
+
+export const createUser = (userData) => {
+  ensureToken()
+  return api.post('/users', userData)
+}
+
+export const updateUser = (userId, userData) => {
+  ensureToken()
+  return api.patch(`/admin/users/${userId}`, userData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+}
+
+export const deleteUser = (userId) => {
+  ensureToken()
+  return api.delete(`/users/${userId}`)
+}
+
 // Password reset endpoints
 export const requestPasswordReset = (email) => api.post('/request-password-reset', { email })
 export const resetPassword = (token, newPassword) => api.post('/reset-password', { token, newPassword })
@@ -405,13 +444,27 @@ export const getProducts = () => api.get('/products')
 export const getProductById = (id) => api.get(`/products/${id}`)
 export const createProduct = (productData) => {
   const formData = new FormData()
+  
+  // Log the incoming data for debugging
+  console.log('Creating product with data:', productData)
+  
+  // Handle image first
+  if (productData.image) {
+    formData.append('image', productData.image)
+  }
+  
+  // Handle other fields
   Object.keys(productData).forEach(key => {
-    if (key === 'image' && productData[key]) {
-      formData.append('image', productData[key])
-    } else if (productData[key] !== undefined) {
+    if (key !== 'image' && productData[key] !== undefined) {
       formData.append(key, productData[key])
     }
   })
+  
+  // Log the FormData contents for debugging
+  for (let [key, value] of formData.entries()) {
+    console.log(`${key}:`, value)
+  }
+  
   return api.post('/products', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -420,13 +473,21 @@ export const createProduct = (productData) => {
 }
 export const updateProduct = (id, productData) => {
   const formData = new FormData()
+  
+  // Handle image separately
+  if (productData.image) {
+    formData.append('image', productData.image)
+  }
+  
+  // Handle other fields
   Object.keys(productData).forEach(key => {
-    if (key === 'image' && productData[key]) {
-      formData.append('image', productData[key])
-    } else if (productData[key] !== undefined) {
-      formData.append(key, productData[key])
+    if (key !== 'image' && productData[key] !== undefined && productData[key] !== null) {
+      // Convert numbers to strings for FormData
+      const value = typeof productData[key] === 'number' ? productData[key].toString() : productData[key]
+      formData.append(key, value)
     }
   })
+  
   return api.patch(`/products/${id}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -438,17 +499,25 @@ export const countProducts = () => api.get('/products/count')
 export const syncProductInventory = (productId) => api.put(`/${productId}/sync-inventory`)
 
 // Category endpoints
-export const getCategories = async () => {
-  try {
-    const response = await api.get('/categories')
-    return response
-  } catch (error) {
-    console.error('Error fetching categories:', error)
-    throw error
-  }
-}
+export const getCategories = () => {
+  return api.get('/categories');
+};
 
-export const getCategoryById = (id) => api.get(`/categories/${id}`)
+export const getCategory = (id) => {
+  return api.get(`/categories/${id}`);
+};
+
+export const createCategory = (categoryData) => {
+  return api.post('/categories', categoryData);
+};
+
+export const updateCategory = (id, categoryData) => {
+  return api.patch(`/categories/${id}`, categoryData);
+};
+
+export const deleteCategory = (id) => {
+  return api.delete(`/categories/${id}`);
+};
 
 // Order endpoints
 export const createOrder = async (orderData) => {
@@ -577,9 +646,21 @@ export const createOrder = async (orderData) => {
   }
 };
 
-export const getOrders = () => {
-  ensureToken();
-  return api.get('/orders');
+export const getOrders = async () => {
+  try {
+    ensureToken();
+    // Fetch all orders with a large page size
+    const response = await api.get('/orders/all', {
+      params: {
+        page: 1,
+        limit: 1000 // Large number to get all orders
+      }
+    });
+    return response;
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    throw error;
+  }
 };
 
 export const getOrderById = (id) => {
@@ -889,5 +970,113 @@ export const verifyPayment = async (reference) => {
     throw error;
   }
 };
+
+// Inventory Management
+export const getInventoryStatus = async () => {
+  try {
+    ensureToken();
+    const response = await api.get('/inventory-status');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching inventory status:', error);
+    throw error;
+  }
+};
+
+export const updateInventory = async (updateData) => {
+  try {
+    ensureToken();
+    console.log('Updating inventory with data:', updateData);
+    
+    // Extract the product ID and create a clean update object
+    const { product, quantity, lowStockThreshold, location } = updateData;
+    
+    // Format the request data according to backend expectations
+    const requestData = {
+      productId: product,
+      quantity: quantity,
+      type: 'ADJUST', // Using ADJUST type since we're setting a specific quantity
+      reason: 'Manual inventory update' // Adding a reason for the history record
+    };
+    
+    const response = await api.put(`/inventory-update/${product}`, requestData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating inventory:', error);
+    throw error;
+  }
+};
+
+export const getInventoryHistory = async (productId) => {
+  try {
+    ensureToken();
+    const response = await api.get(`/inventory-history/${productId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Reporting endpoints
+export const getSalesReport = async (startDate, endDate) => {
+  try {
+    await ensureToken();
+    const response = await api.get('/sales-report', {
+      params: { startDate, endDate }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching sales report:', error);
+    throw error;
+  }
+};
+
+export const getInventoryReport = async () => {
+  try {
+    await ensureToken();
+    const response = await api.get('/inventory-report');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching inventory report:', error);
+    throw error;
+  }
+};
+
+export const getUserActivityReport = async (startDate, endDate) => {
+  try {
+    await ensureToken();
+    const response = await api.get('/user-activity-report', {
+      params: { startDate, endDate }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user activity report:', error);
+    throw error;
+  }
+};
+
+export const getProductPerformanceReport = async (startDate, endDate) => {
+  try {
+    await ensureToken();
+    const response = await api.get('/product-performance-report', {
+      params: { startDate, endDate }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching product performance report:', error);
+    throw error;
+  }
+};
+
+export const getLowStockReport = async () => {
+  try {
+    ensureToken()
+    const response = await api.get('/low-stock-report')
+    return response
+  } catch (error) {
+    console.error('Error fetching low stock report:', error)
+    throw error
+  }
+}
 
 export default api

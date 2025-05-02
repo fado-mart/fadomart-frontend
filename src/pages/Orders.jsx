@@ -21,7 +21,6 @@ import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
 import { getOrders, getOrderById, verifyPayment, clearCart, updateOrder } from '../services/api'
 import { format } from 'date-fns'
-import api from '../services/api'
 
 const statusColors = {
   'Pending': 'warning',

@@ -14,6 +14,7 @@ import {
   ShoppingCart,
   AccountCircle,
   Menu as MenuIcon,
+  Dashboard as DashboardIcon,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
@@ -73,6 +74,11 @@ const Navbar = () => {
           <MenuItem onClick={() => { handleMenuClose(); navigate('/orders') }}>
             My Orders
           </MenuItem>
+          {user?.role === 'Admin' && (
+            <MenuItem onClick={() => { handleMenuClose(); navigate('/admin') }}>
+              Admin Dashboard
+            </MenuItem>
+          )}
           <MenuItem onClick={handleLogout}>Logout</MenuItem>
         </>
       ) : (
@@ -154,6 +160,16 @@ const Navbar = () => {
                 <ShoppingCart />
               </Badge>
             </IconButton>
+            {user?.role === 'Admin' && (
+              <Button
+                color="inherit"
+                startIcon={<DashboardIcon />}
+                onClick={() => navigate('/admin')}
+                sx={{ ml: 1 }}
+              >
+                Admin
+              </Button>
+            )}
             <IconButton
               size="large"
               edge="end"

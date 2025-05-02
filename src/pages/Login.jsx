@@ -15,6 +15,7 @@ import { ArrowBack } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { testConnection } from '../services/api'
+import axios from 'axios'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -25,6 +26,7 @@ const Login = () => {
   const [apiError, setApiError] = useState(null)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const api = axios.create()
 
   useEffect(() => {
     const checkApiConnection = async () => {
@@ -54,30 +56,18 @@ const Login = () => {
       const response = await login({ email, password })
       console.log('Login Response:', response)
       
-      // Check if login was successful by looking for accessToken
+      // Get token from the correct location (accessToken)
       const token = response.data?.accessToken || 
                     response.data?.data?.accessToken ||
                     response.data?.token || 
                     response.data?.data?.token || 
                     null
       
-      // Also check for JWT pattern in any field
-      if (!token) {
-        const jwtPattern = /^eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+$/;
-        for (const key in response.data) {
-          const value = response.data[key];
-          if (typeof value === 'string' && jwtPattern.test(value)) {
-            console.log(`Found JWT-like token in field '${key}'`);
-            // Success! We have a token
-            console.log('Login successful with token in non-standard field, redirecting to home')
-            navigate('/')
-            return;
-          }
-        }
-      }
-      
       if (token) {
         console.log('Login successful with standard token, redirecting to home')
+        // Set token in localStorage and API headers
+        localStorage.setItem('token', token)
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`
         navigate('/')
       } else {
         console.warn('Login response did not contain any identifiable token')
